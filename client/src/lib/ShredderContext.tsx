@@ -60,12 +60,16 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
     
     // Animate document going into shredder
     if (documentRef.current) {
-      // First ensure it's visible
+      // Initialize document position above the shredder mouth
       documentRef.current.style.display = 'block';
+      documentRef.current.style.transition = 'none';
+      documentRef.current.style.transform = 'translateX(-50%) translateY(-120px)';
       
-      // Animate the document going into the shredder slot
-      // Use requestAnimationFrame to ensure smooth animation
-      requestAnimationFrame(() => {
+      // Force reflow to ensure the position is applied before starting animation
+      documentRef.current.offsetHeight;
+      
+      // Animate document movement in two steps for a more realistic effect
+      setTimeout(() => {
         if (documentRef.current) {
           // Get shredder slot position
           const shredderSlot = document.querySelector('.shredder-mouth');
@@ -73,18 +77,24 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
             const slotRect = shredderSlot.getBoundingClientRect();
             const docRect = documentRef.current.getBoundingClientRect();
             
-            // Calculate distance to move to the shredder slot
-            // The document should slide smoothly into the slot
-            const targetY = slotRect.top - docRect.top + 40; // Adjust to position at the top of the slot
+            // First move halfway to the slot
+            documentRef.current.style.transition = 'transform 0.5s ease-out';
+            documentRef.current.style.transform = 'translateX(-50%) translateY(-30px)';
             
-            // Set the transition and transform for smooth animation
-            documentRef.current.style.transition = 'transform 0.8s ease-in-out';
-            documentRef.current.style.transform = `translateX(-50%) translateY(${targetY}px) scale(0.9)`;
+            // Then move into the slot with a slight pause
+            setTimeout(() => {
+              if (documentRef.current) {
+                // Calculate final position - slightly into the slot
+                const targetY = slotRect.top - docRect.top + 20;
+                
+                // Set the transition and transform for the final movement
+                documentRef.current.style.transition = 'transform 0.8s ease-in';
+                documentRef.current.style.transform = `translateX(-50%) translateY(${targetY}px) scale(0.95)`;
+              }
+            }, 520);
           }
         }
-      });
-      
-      // No need to clone the document - we'll create shreds directly in ShredderMachine
+      }, 50);
     }
     
     // Update progress bar

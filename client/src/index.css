@@ -57,54 +57,76 @@
     
   /* Shredding animation styles */
   .paper-strip,
-  .shredded-piece {
+  .cross-piece,
+  .crazy-piece {
     position: absolute;
-    transform-origin: top center;
+    transform-origin: center;
     overflow: hidden;
+    will-change: transform, opacity;
   }
     
   /* For strip cut animation */
   @keyframes shred-fall-strip {
     0% { 
-      transform: translateY(0) rotate(0deg); 
+      transform: translateY(0) translateX(0) rotate(0deg); 
       opacity: 0;
     }
     10% {
       opacity: 1;
     }
+    70% {
+      opacity: 1;
+    }
     100% { 
-      transform: translateY(50px) rotate(var(--rotation, 5deg)); 
+      transform: translateY(var(--end-y, 100px)) translateX(var(--end-x, 0px)) rotate(var(--rotation, 5deg)); 
       opacity: 1;
     }
   }
     
-  /* For cross cut animation */
+  /* For cross cut animation - more scattered */
   @keyframes shred-fall-cross {
     0% {
-      transform: translateY(0) rotate(0deg);
+      transform: translateY(0) translateX(0) rotate(0deg);
       opacity: 0;
     }
-    10% {
+    15% {
+      transform: translateY(10px) translateX(var(--end-x, 0px) * 0.2) rotate(var(--rotation, 0deg) * 0.3);
       opacity: 1;
     }
     100% {
-      transform: translateY(60px) rotate(var(--rotation, 90deg));
+      transform: translateY(var(--end-y, 80px)) translateX(var(--end-x, 0px)) rotate(var(--rotation, 90deg));
       opacity: 1;
     }
   }
   
-  /* For crazy cut animation */
+  /* For crazy cut animation - even more chaotic */
   @keyframes shred-fall-crazy {
     0% {
-      transform: translateY(0) rotate(0deg);
+      transform: translateY(0) translateX(0) rotate(0deg);
       opacity: 0;
     }
     10% {
+      transform: translateY(15px) translateX(var(--end-x, 0px) * 0.1) rotate(var(--rotation, 0deg) * 0.2);
+      opacity: 0.8;
+    }
+    30% {
+      transform: translateY(var(--end-y, 100px) * 0.3) translateX(var(--end-x, 0px) * 0.5) rotate(var(--rotation, 180deg) * 0.4);
+    }
+    100% {
+      transform: translateY(var(--end-y, 100px)) translateX(var(--end-x, 0px)) rotate(var(--rotation, 180deg));
+      opacity: 1;
+    }
+  }
+  
+  /* Restoration animation */
+  @keyframes restore-piece {
+    0% {
+      transform: translateY(0) translateX(0) rotate(0deg);
       opacity: 1;
     }
     100% {
-      transform: translateY(70px) rotate(var(--rotation, 180deg));
-      opacity: 1;
+      transform: translateY(-30px) translateX(var(--restore-x, 0px)) rotate(var(--restore-rotation, 180deg));
+      opacity: 0;
     }
   }
 

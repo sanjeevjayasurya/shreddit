@@ -1,6 +1,36 @@
 import { useState, useEffect, useRef } from "react";
 import { useShredder } from "@/lib/ShredderContext";
 
+// Define piece config types for better TypeScript support
+type BasePieceConfig = {
+  width: number;
+  height: number;
+  left: number;
+  top: number;
+  backgroundX: number;
+  backgroundY: number;
+  rotation: number;
+  delay: number;
+  type: string;
+};
+
+type StripPieceConfig = BasePieceConfig & {
+  type: 'strip';
+};
+
+type CrossPieceConfig = BasePieceConfig & {
+  type: 'cross';
+  row: number;
+  col: number;
+};
+
+type CrazyPieceConfig = BasePieceConfig & {
+  type: 'crazy';
+  borderRadius: number;
+};
+
+type PieceConfig = StripPieceConfig | CrossPieceConfig | CrazyPieceConfig;
+
 const ShredderMachine = () => {
   const { file, shredMode, isShredding, progress, isShreddingComplete, documentRef } = useShredder();
   const shreddedPiecesRef = useRef<HTMLDivElement>(null);
@@ -35,200 +65,243 @@ const ShredderMachine = () => {
     if (!shreddedPiecesRef.current) return;
     shreddedPiecesRef.current.innerHTML = '';
     
-    // Get document dimensions
-    const width = 180; // Standard document width
-    const height = 250; // Standard document height
+    // Standard A4 paper aspect ratio for the document
+    const width = 210; // Width in mm (scaled down)
+    const height = 297; // Height in mm (scaled down)
     
     // Get document background (from image if available)
     let bgImageUrl = documentImage;
     
-    // Number of pieces depends on shred mode
-    const piecesCount = shredMode === 'strip' ? 15 : (shredMode === 'cross' ? 42 : 36);
-    
-    // Distribute pieces over document width
-    const stripWidth = shredMode === 'strip' ? width / piecesCount : null;
-    
-    // Center the pieces in the bin
+    // Get the container dimensions for better positioning
     const containerWidth = shreddedPiecesRef.current.offsetWidth;
+    const containerHeight = shreddedPiecesRef.current.offsetHeight;
+    
+    // Center the document horizontally
     const startX = (containerWidth - width) / 2;
     
-    for (let i = 0; i < piecesCount; i++) {
+    // Calculate number of pieces based on shred mode
+    let piecesConfig: PieceConfig[] = [];
+    
+    if (shredMode === 'strip') {
+      // For strip cut: vertical strips
+      const strips = 20; // Number of strips
+      const stripWidth = width / strips;
+      
+      piecesConfig = Array(strips).fill(0).map((_, i) => ({
+        width: stripWidth,
+        height: height,
+        left: startX + (i * stripWidth),
+        top: -height,
+        backgroundX: -(i * stripWidth),
+        backgroundY: 0,
+        rotation: Math.random() * 40 - 20,
+        delay: i * 0.03,
+        type: 'strip'
+      } as StripPieceConfig));
+    } 
+    else if (shredMode === 'cross') {
+      // For cross cut: grid of rectangles
+      const cols = 7;
+      const rows = 10;
+      const pieceWidth = width / cols;
+      const pieceHeight = height / rows;
+      
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          piecesConfig.push({
+            width: pieceWidth,
+            height: pieceHeight,
+            left: startX + (col * pieceWidth),
+            top: -pieceHeight,
+            backgroundX: -(col * pieceWidth),
+            backgroundY: -(row * pieceHeight),
+            rotation: Math.random() * 180 - 90,
+            delay: Math.random() * 0.3,
+            type: 'cross',
+            row: row,
+            col: col
+          } as CrossPieceConfig);
+        }
+      }
+    } 
+    else { // crazy mode
+      // For crazy cut: random shaped pieces
+      const pieces = 50; // More pieces for crazy mode
+      
+      for (let i = 0; i < pieces; i++) {
+        // Random size between 15px and 40px
+        const pieceWidth = Math.random() * 25 + 15;
+        const pieceHeight = Math.random() * 25 + 15;
+        
+        // Random position within the document bounds
+        const pieceLeft = startX + (Math.random() * (width - pieceWidth));
+        const pieceTop = Math.random() * height * 0.2 - height; // Start slightly staggered
+        
+        // Random position in the original document for background image
+        const backgroundX = -(Math.random() * (width - pieceWidth));
+        const backgroundY = -(Math.random() * (height - pieceHeight));
+        
+        piecesConfig.push({
+          width: pieceWidth,
+          height: pieceHeight,
+          left: pieceLeft,
+          top: pieceTop,
+          backgroundX: backgroundX,
+          backgroundY: backgroundY,
+          rotation: Math.random() * 720 - 360,
+          delay: Math.random() * 0.5,
+          type: 'crazy',
+          borderRadius: Math.random() * 8
+        } as CrazyPieceConfig);
+      }
+    }
+    
+    // Create and add all pieces to the DOM
+    piecesConfig.forEach(config => {
       const piece = document.createElement('div');
       
-      if (shredMode === 'strip') {
-        // Create vertical strips that look like the document
+      // Common styling for all pieces
+      piece.style.position = 'absolute';
+      piece.style.width = `${config.width}px`;
+      piece.style.height = `${config.height}px`;
+      piece.style.left = `${config.left}px`;
+      piece.style.top = `${config.top}px`;
+      piece.style.backgroundColor = '#ffffff';
+      piece.style.zIndex = '5';
+      
+      // Type guards for proper TypeScript type checking
+      if (config.type === 'strip') {
         piece.className = 'paper-strip';
-        const stripLeft = (i * (stripWidth || 10));
-        
-        // Styling
-        piece.style.width = `${stripWidth}px`;
-        piece.style.height = `${height}px`;
-        piece.style.left = `${startX + stripLeft}px`;
-        piece.style.position = 'absolute';
-        piece.style.top = `-${height}px`; // Start above the bin
-        piece.style.backgroundColor = '#ffffff';
         piece.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-        piece.style.zIndex = '2';
         
-        // If we have an image, use it as background
-        if (bgImageUrl) {
-          piece.style.backgroundImage = `url(${bgImageUrl})`;
-          piece.style.backgroundSize = `${width}px ${height}px`;
-          piece.style.backgroundPosition = `-${stripLeft}px 0`;
-        } else {
-          // Document-like appearance if no image
-          if (i % 5 === 0) {
+        // Add document-like content if no image
+        if (!bgImageUrl) {
+          if (Math.random() > 0.6) {
             const line = document.createElement('div');
             line.style.height = '2px';
             line.style.width = '80%';
             line.style.backgroundColor = '#e0e0e0';
-            line.style.margin = '8px auto';
-            piece.appendChild(line);
-          }
-          if (i % 3 === 0) {
-            const line = document.createElement('div');
-            line.style.height = '2px';
-            line.style.width = '60%';
-            line.style.backgroundColor = '#e0e0e0';
-            line.style.margin = '16px auto';
-            piece.appendChild(line);
-          }
-          if (i % 7 === 0) {
-            const line = document.createElement('div');
-            line.style.height = '2px';
-            line.style.width = '70%';
-            line.style.backgroundColor = '#e0e0e0';
-            line.style.margin = '30px auto';
+            line.style.margin = `${10 + Math.random() * 40}px auto`;
             piece.appendChild(line);
           }
         }
         
-        // Animation for falling
-        piece.style.animation = `shred-fall-strip 1.5s ease-in ${i * 0.05}s forwards`;
-        piece.style.setProperty('--rotation', `${Math.random() * 30 - 15}deg`);
-      } else if (shredMode === 'cross') {
-        // Create small rectangles from document in a grid
-        piece.className = 'shredded-piece';
+        // Animation for falling strips
+        const horizontalShift = Math.random() * 80 - 40; // Move -40px to +40px horizontally
+        piece.style.setProperty('--end-x', `${horizontalShift}px`);
+        piece.style.setProperty('--end-y', `${containerHeight * 0.5 + Math.random() * 40}px`);
+        piece.style.setProperty('--rotation', `${config.rotation}deg`);
+        piece.style.animation = `shred-fall-strip 1.2s ease-in ${config.delay}s forwards`;
+      } 
+      else if (config.type === 'cross') {
+        // We need to cast to get TypeScript to recognize the specific properties
+        const crossConfig = config as CrossPieceConfig;
+        piece.className = 'cross-piece';
+        piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.12)';
         
-        // Position across the document width in a grid
-        const cols = 6;
-        const rows = 7;
-        const pieceWidth = width / cols;
-        const pieceHeight = height / rows;
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const pieceLeft = col * pieceWidth;
-        const pieceTop = row * pieceHeight;
+        // Calculate end positions for scattering across the tray
+        // Push pieces to the outside more based on their position from center
+        const colFromCenter = Math.abs(crossConfig.col - 3); // 0-3
+        const rowFromCenter = Math.abs(crossConfig.row - 5); // 0-5
+        const distanceFromCenter = Math.sqrt(colFromCenter * colFromCenter + rowFromCenter * rowFromCenter);
         
-        // Styling for small rectangles
-        piece.style.width = `${pieceWidth}px`;
-        piece.style.height = `${pieceHeight}px`;
-        piece.style.position = 'absolute';
-        piece.style.left = `${startX + (Math.random() * width * 0.8)}px`;
-        piece.style.top = `-${height * 0.8}px`;
-        piece.style.backgroundColor = '#ffffff';
-        piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-        piece.style.zIndex = '2';
+        // More distance = more scatter
+        const scatterFactor = 30 + distanceFromCenter * 15;
+        const horizontalShift = ((crossConfig.col - 3) * scatterFactor) + (Math.random() * 40 - 20);
+        const verticalShift = containerHeight * 0.3 + Math.random() * 60 + (crossConfig.row * 10);
         
-        // Background image if available
-        if (bgImageUrl) {
-          piece.style.backgroundImage = `url(${bgImageUrl})`;
-          piece.style.backgroundSize = `${width}px ${height}px`;
-          piece.style.backgroundPosition = `-${pieceLeft}px -${pieceTop}px`;
-        }
+        piece.style.setProperty('--end-x', `${horizontalShift}px`);
+        piece.style.setProperty('--end-y', `${verticalShift}px`);
+        piece.style.setProperty('--rotation', `${config.rotation}deg`);
+        piece.style.animation = `shred-fall-cross 1.3s ease-in ${config.delay}s forwards`;
+      } 
+      else if (config.type === 'crazy') {
+        // We need to cast to get TypeScript to recognize the specific properties
+        const crazyConfig = config as CrazyPieceConfig;
+        piece.className = 'crazy-piece';
+        piece.style.boxShadow = '0 1px 3px rgba(0,0,0,0.15)';
+        piece.style.borderRadius = `${crazyConfig.borderRadius}px`;
         
-        // Rotation for flying pieces
-        const rotation = Math.random() * 360;
-        const delay = Math.random() * 0.5;
-        piece.style.animation = `shred-fall-cross 2s ease-in ${delay}s forwards`;
-        piece.style.transform = `rotate(${rotation}deg)`;
-      } else {
-        // Crazy cut - irregular shapes but still from document
-        piece.className = 'shredded-piece';
+        // Even more random final positions for crazy mode
+        const horizontalShift = Math.random() * containerWidth * 0.8 - containerWidth * 0.4;
+        const verticalShift = containerHeight * 0.2 + Math.random() * (containerHeight * 0.6);
         
-        // Random size and position
-        const pieceWidth = Math.random() * 20 + 10;
-        const pieceHeight = Math.random() * 20 + 10;
-        
-        // Styling
-        piece.style.width = `${pieceWidth}px`;
-        piece.style.height = `${pieceHeight}px`;
-        piece.style.position = 'absolute';
-        piece.style.left = `${startX + (Math.random() * width * 0.9)}px`;
-        piece.style.top = `-${height}px`;
-        piece.style.backgroundColor = '#ffffff';
-        piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-        piece.style.borderRadius = `${Math.random() * 5}px`;
-        piece.style.zIndex = '2';
-        
-        // Random position in the document for background image
-        const pieceLeft = Math.random() * (width - pieceWidth);
-        const pieceTop = Math.random() * (height - pieceHeight);
-        
-        // Background image if available
-        if (bgImageUrl) {
-          piece.style.backgroundImage = `url(${bgImageUrl})`;
-          piece.style.backgroundSize = `${width}px ${height}px`;
-          piece.style.backgroundPosition = `-${pieceLeft}px -${pieceTop}px`;
-        }
-        
-        // Animation
-        const rotation = Math.random() * 720 - 360;
-        const delay = Math.random() * 0.8;
-        piece.style.animation = `shred-fall-crazy 2.5s ease-in ${delay}s forwards`;
-        piece.style.transform = `rotate(${rotation}deg)`;
+        piece.style.setProperty('--end-x', `${horizontalShift}px`);
+        piece.style.setProperty('--end-y', `${verticalShift}px`);
+        piece.style.setProperty('--rotation', `${config.rotation}deg`);
+        piece.style.animation = `shred-fall-crazy 1.5s ease-in ${config.delay}s forwards`;
       }
       
-      shreddedPiecesRef.current.appendChild(piece);
-    }
+      // Apply background image if available - for all piece types
+      if (bgImageUrl) {
+        piece.style.backgroundImage = `url(${bgImageUrl})`;
+        piece.style.backgroundSize = `${width}px ${height}px`;
+        piece.style.backgroundPosition = `${config.backgroundX}px ${config.backgroundY}px`;
+      }
+      
+      // Add to DOM - check for null to satisfy TypeScript
+      if (shreddedPiecesRef.current) {
+        shreddedPiecesRef.current.appendChild(piece);
+      }
+    });
     
-    // Hide the original document
+    // Hide the original document with a slight delay
     if (documentRef.current) {
       setTimeout(() => {
         if (documentRef.current) {
           documentRef.current.style.display = 'none';
         }
-      }, 500);
+      }, 400);
     }
   };
 
   return (
-    <div id="shredderContainer" className="shredder-container relative mb-8">
+    <div id="shredderContainer" className="shredder-container relative mb-8 w-full">
       {/* Shredder machine with face */}
-      <div className="shredder w-80 h-96 mx-auto relative">
+      <div className="shredder w-full max-w-4xl mx-auto relative h-[500px]">
         {/* Shredder body */}
-        <div className="shredder-body bg-secondary rounded-3xl w-80 h-72 shadow-lg relative overflow-hidden flex flex-col">
+        <div className="shredder-body bg-secondary rounded-3xl w-full h-[400px] shadow-lg relative overflow-hidden flex flex-col">
           {/* Shredder face */}
           <div className="shredder-face absolute w-full flex justify-center pt-6">
             {/* Eyes */}
-            <div className="flex space-x-12">
-              <div className="eye w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <div className={`pupil w-4 h-4 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
+            <div className="flex space-x-20">
+              <div className="eye w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                <div className={`pupil w-5 h-5 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
               </div>
-              <div className="eye w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <div className={`pupil w-4 h-4 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
+              <div className="eye w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                <div className={`pupil w-5 h-5 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
               </div>
             </div>
           </div>
           
-          {/* Shredder mouth/slot */}
-          <div className="shredder-mouth w-60 h-8 bg-dark rounded-lg mx-auto mt-24 shadow-inner flex items-center justify-center overflow-hidden">
-            <div className="shredder-teeth flex">
-              {Array(8).fill(0).map((_, i) => (
-                <div key={i} className={`tooth w-1 h-8 bg-gray-600 mx-1 ${isShredding ? 'animate-spin-slow' : ''}`}></div>
+          {/* Shredder mouth/slot - wider to accommodate document */}
+          <div className="shredder-mouth w-3/4 h-10 bg-dark rounded-lg mx-auto mt-28 shadow-inner flex items-center justify-center overflow-hidden relative">
+            {/* Black strip for shadow/depth inside slot */}
+            <div className="absolute w-full h-full bg-black opacity-40"></div>
+            <div className="shredder-teeth flex z-10">
+              {Array(16).fill(0).map((_, i) => (
+                <div key={i} className={`tooth w-1 h-10 bg-gray-600 mx-1 ${isShredding ? 'animate-spin-slow' : ''}`}></div>
               ))}
             </div>
           </div>
           
-          {/* Shredder collection bin */}
-          <div className="flex-grow bg-gray-700 mt-4 relative overflow-hidden" id="shredBin">
-            {/* Shredded pieces will appear here dynamically */}
-            <div ref={shreddedPiecesRef} className="absolute w-full h-full"></div>
+          {/* Shredder collection bin/tray */}
+          <div className="shredder-bin flex-grow bg-gray-700 mt-4 relative overflow-hidden" id="shredBin">
+            {/* Tray with raised edges */}
+            <div className="absolute w-11/12 h-full mx-auto left-0 right-0 bg-gray-600 rounded-b-lg">
+              {/* Inner tray shadow for depth */}
+              <div className="absolute w-full h-full bg-black opacity-20 rounded-b-lg"></div>
+              
+              {/* Shredded pieces container */}
+              <div ref={shreddedPiecesRef} className="absolute w-full h-full">
+                {/* Shredded pieces will appear here dynamically */}
+              </div>
+            </div>
           </div>
         </div>
         
         {/* Shredder base/stand */}
-        <div className="shredder-base w-64 h-12 bg-gray-800 rounded-b-3xl mx-auto shadow-lg"></div>
+        <div className="shredder-base w-5/6 h-16 bg-gray-800 rounded-b-3xl mx-auto shadow-lg"></div>
       </div>
     </div>
   );

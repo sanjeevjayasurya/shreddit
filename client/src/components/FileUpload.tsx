@@ -155,10 +155,11 @@ export const FileUpload = () => {
         className={`fixed w-48 h-64 bg-white shadow-md rounded ${!file ? 'hidden' : ''}`} 
         style={{ 
           zIndex: 30, 
-          top: '250px', 
+          top: '150px',  // Positioned somewhat above the shredder initially
           left: '50%', 
           transform: 'translateX(-50%)',
-          transition: 'all 0.8s ease-in-out'
+          transition: 'all 0.5s ease-in-out',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
         }}
       >
         <div className="h-full p-2 overflow-hidden flex flex-col">
