@@ -127,9 +127,15 @@ export const FileUpload = () => {
               
               <div className="preview-container max-h-64 overflow-hidden rounded-lg border border-gray-200 mb-4">
                 {file.type === 'application/pdf' ? (
-                  <div className="bg-gray-100 h-64 flex items-center justify-center text-gray-500">
-                    PDF Preview
-                  </div>
+                  <object
+                    data={URL.createObjectURL(file)}
+                    type="application/pdf"
+                    className="w-full h-64"
+                  >
+                    <div className="bg-gray-100 h-64 flex items-center justify-center text-gray-500">
+                      <p>Your browser doesn't support PDF preview.<br />The file will still be shredded properly.</p>
+                    </div>
+                  </object>
                 ) : (
                   <img 
                     className="max-w-full h-auto max-h-64 object-contain mx-auto" 

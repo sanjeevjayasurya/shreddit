@@ -15,38 +15,137 @@ const ShredderMachine = () => {
     if (!shreddedPiecesRef.current) return;
     shreddedPiecesRef.current.innerHTML = '';
     
+    // Get the cloned document to create realistic shreds
+    const documentClone = document.getElementById('documentClone');
+    const documentCloneWidth = documentClone ? documentClone.offsetWidth : 180;
+    const documentCloneHeight = documentClone ? documentClone.offsetHeight : 260;
+    
+    // Calculate background position for image shreds
+    let bgImageUrl = '';
+    if (documentClone) {
+      // Find any images in the document clone
+      const imgElements = documentClone.querySelectorAll('img');
+      if (imgElements.length > 0) {
+        bgImageUrl = imgElements[0].src;
+      }
+    }
+    
     // Number of pieces depends on shred mode
-    const piecesCount = shredMode === 'strip' ? 12 : (shredMode === 'cross' ? 40 : 30);
+    const piecesCount = shredMode === 'strip' ? 18 : (shredMode === 'cross' ? 42 : 36);
+    
+    // Distribute pieces over document width
+    const stripWidth = shredMode === 'strip' ? documentCloneWidth / piecesCount : null;
     
     for (let i = 0; i < piecesCount; i++) {
       const piece = document.createElement('div');
       
       if (shredMode === 'strip') {
-        // Create vertical strips
+        // Create vertical strips that look like the document
         piece.className = 'paper-strip';
-        piece.style.height = '80px';
-        piece.style.left = `${(i * 10) + 40}px`;
-        piece.style.backgroundColor = i % 3 === 0 ? '#f0f0f0' : '#ffffff';
+        const stripLeft = (i * (stripWidth || 10));
+        
+        // Styling
+        piece.style.width = `${stripWidth}px`;
+        piece.style.height = `${documentCloneHeight}px`;
+        piece.style.left = `${stripLeft}px`;
+        piece.style.position = 'absolute';
+        piece.style.bottom = '100%'; // Start from above the bin
+        piece.style.backgroundColor = '#ffffff';
+        piece.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        
+        // If we have an image, use it as background
+        if (bgImageUrl) {
+          piece.style.backgroundImage = `url(${bgImageUrl})`;
+          piece.style.backgroundSize = `${documentCloneWidth}px ${documentCloneHeight}px`;
+          piece.style.backgroundPosition = `-${stripLeft}px 0`;
+        } else {
+          // Document-like appearance if no image
+          if (i % 5 === 0) {
+            const line = document.createElement('div');
+            line.style.height = '2px';
+            line.style.width = '80%';
+            line.style.backgroundColor = '#e0e0e0';
+            line.style.margin = '8px auto';
+            piece.appendChild(line);
+          }
+          if (i % 3 === 0) {
+            const line = document.createElement('div');
+            line.style.height = '2px';
+            line.style.width = '60%';
+            line.style.backgroundColor = '#e0e0e0';
+            line.style.margin = '8px auto';
+            piece.appendChild(line);
+          }
+        }
+        
+        // Animation for falling
+        piece.style.animation = `fall 2s ease-in ${i * 0.05}s forwards`;
         piece.style.setProperty('--rotation', `${Math.random() * 30 - 15}deg`);
       } else if (shredMode === 'cross') {
-        // Create small rectangles
-        piece.className = 'confetti';
-        piece.style.height = '12px';
-        piece.style.width = '8px';
-        piece.style.left = `${Math.random() * 200 + 40}px`;
-        piece.style.backgroundColor = i % 5 === 0 ? '#e0e0e0' : '#ffffff';
-        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
-        piece.style.animationDelay = `${Math.random() * 0.5}s`;
+        // Create small rectangles from document
+        piece.className = 'shredded-piece';
+        
+        // Position across the document width
+        const pieceWidth = documentCloneWidth / 6;
+        const pieceHeight = documentCloneHeight / 7;
+        const row = Math.floor(i / 6);
+        const col = i % 6;
+        const pieceLeft = col * pieceWidth;
+        const pieceTop = row * pieceHeight;
+        
+        // Styling for small rectangles
+        piece.style.width = `${pieceWidth}px`;
+        piece.style.height = `${pieceHeight}px`;
+        piece.style.position = 'absolute';
+        piece.style.left = `${pieceLeft}px`;
+        piece.style.bottom = '100%';
+        piece.style.backgroundColor = '#ffffff';
+        piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+        
+        // Background image if available
+        if (bgImageUrl) {
+          piece.style.backgroundImage = `url(${bgImageUrl})`;
+          piece.style.backgroundSize = `${documentCloneWidth}px ${documentCloneHeight}px`;
+          piece.style.backgroundPosition = `-${pieceLeft}px -${pieceTop}px`;
+        }
+        
+        // Rotation for flying pieces
+        const rotation = Math.random() * 360;
+        const delay = Math.random() * 0.5;
+        piece.style.animation = `confetti-fall 2.5s ease-in ${delay}s forwards`;
+        piece.style.transform = `rotate(${rotation}deg)`;
       } else {
-        // Crazy cut - irregular shapes
-        piece.className = 'confetti';
-        piece.style.height = `${Math.random() * 15 + 5}px`;
-        piece.style.width = `${Math.random() * 15 + 5}px`;
-        piece.style.left = `${Math.random() * 200 + 40}px`;
-        piece.style.backgroundColor = i % 7 === 0 ? '#e0e0e0' : (i % 5 === 0 ? '#f5f5f5' : '#ffffff');
+        // Crazy cut - irregular shapes but still from document
+        piece.className = 'shredded-piece';
+        
+        // Random size and position
+        const pieceWidth = Math.random() * 20 + 10;
+        const pieceHeight = Math.random() * 20 + 10;
+        const pieceLeft = Math.random() * documentCloneWidth;
+        const pieceTop = Math.random() * documentCloneHeight;
+        
+        // Styling
+        piece.style.width = `${pieceWidth}px`;
+        piece.style.height = `${pieceHeight}px`;
+        piece.style.position = 'absolute';
+        piece.style.left = `${pieceLeft}px`;
+        piece.style.bottom = '100%';
+        piece.style.backgroundColor = '#ffffff';
+        piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
         piece.style.borderRadius = `${Math.random() * 5}px`;
-        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
-        piece.style.animationDelay = `${Math.random() * 0.8}s`;
+        
+        // Background image if available
+        if (bgImageUrl) {
+          piece.style.backgroundImage = `url(${bgImageUrl})`;
+          piece.style.backgroundSize = `${documentCloneWidth}px ${documentCloneHeight}px`;
+          piece.style.backgroundPosition = `-${pieceLeft}px -${pieceTop}px`;
+        }
+        
+        // Animation
+        const rotation = Math.random() * 720 - 360;
+        const delay = Math.random() * 0.8;
+        piece.style.animation = `confetti-fall 3s ease-in ${delay}s forwards`;
+        piece.style.transform = `rotate(${rotation}deg)`;
       }
       
       shreddedPiecesRef.current.appendChild(piece);
@@ -59,6 +158,11 @@ const ShredderMachine = () => {
           documentRef.current.style.display = 'none';
         }
       }, 500);
+    }
+    
+    // Position the cloned document (now shredded) below the shredder
+    if (documentClone) {
+      documentClone.style.display = 'none';
     }
   };
 
