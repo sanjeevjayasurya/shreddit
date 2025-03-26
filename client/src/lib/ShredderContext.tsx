@@ -60,30 +60,31 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
     
     // Animate document going into shredder
     if (documentRef.current) {
+      // First ensure it's visible
       documentRef.current.style.display = 'block';
-      documentRef.current.style.transition = 'transform 2s ease-in-out';
-      documentRef.current.style.transform = 'translate(-50%, 70px)';
       
-      // Clone the document for shredding (will be used in ShredderMachine)
-      const originalDocument = documentRef.current.cloneNode(true) as HTMLDivElement;
-      originalDocument.id = 'documentClone';
-      originalDocument.style.position = 'absolute';
-      originalDocument.style.left = '50%';
-      originalDocument.style.transform = 'translateX(-50%)';
-      originalDocument.style.top = 'auto';
-      originalDocument.style.zIndex = '5';
-      
-      // Add to the DOM
-      const shredderContainer = document.getElementById('shredderContainer');
-      if (shredderContainer) {
-        // Remove any existing clones
-        const existingClone = document.getElementById('documentClone');
-        if (existingClone) {
-          existingClone.remove();
+      // Animate the document going into the shredder slot
+      // Use requestAnimationFrame to ensure smooth animation
+      requestAnimationFrame(() => {
+        if (documentRef.current) {
+          // Get shredder slot position
+          const shredderSlot = document.querySelector('.shredder-mouth');
+          if (shredderSlot) {
+            const slotRect = shredderSlot.getBoundingClientRect();
+            const docRect = documentRef.current.getBoundingClientRect();
+            
+            // Calculate distance to move to the shredder slot
+            // The document should slide smoothly into the slot
+            const targetY = slotRect.top - docRect.top + 40; // Adjust to position at the top of the slot
+            
+            // Set the transition and transform for smooth animation
+            documentRef.current.style.transition = 'transform 0.8s ease-in-out';
+            documentRef.current.style.transform = `translateX(-50%) translateY(${targetY}px) scale(0.9)`;
+          }
         }
-        
-        shredderContainer.appendChild(originalDocument);
-      }
+      });
+      
+      // No need to clone the document - we'll create shreds directly in ShredderMachine
     }
     
     // Update progress bar
@@ -123,54 +124,48 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
   const restoreDocument = () => {
     if (!file) return;
     
-    // Reset shredded pieces
-    if (documentRef.current) {
-      // Show original document and reset position
-      documentRef.current.style.display = 'block';
-      documentRef.current.style.transition = 'transform 1s ease-out';
-      documentRef.current.style.transform = 'translate(-50%, -20rem)';
+    // Play restore sound first - feels more responsive
+    if (soundEnabled) {
+      playRestoreSound();
     }
     
-    // Find the shredded document pieces and clear them
+    // Reset shredded pieces with a magical animation
     const shreddedContainer = document.querySelector('#shredBin > div');
     if (shreddedContainer) {
-      // Add a magical animation to the shredded pieces before removing them
+      // Add a magical floating/dissolve animation to the shredded pieces 
       const pieces = shreddedContainer.querySelectorAll('div');
       pieces.forEach((piece, i) => {
-        piece.style.transition = 'all 0.5s ease-out';
+        // Randomize the animation for each piece for a more magical effect
+        const randomX = Math.random() * 40 - 20; // Random -20px to +20px
+        const randomDelay = Math.random() * 0.3; // Random delay 0-0.3s
+        
+        piece.style.transition = `all 0.7s ease-out ${randomDelay}s`;
         piece.style.opacity = '0';
-        piece.style.transform = 'translateY(-50px) scale(0.8)';
+        piece.style.transform = `translateY(-30px) translateX(${randomX}px) scale(0.8) rotate(${Math.random() * 180}deg)`;
         
         // Remove after animation
         setTimeout(() => {
           piece.remove();
-        }, 500);
+        }, 800);
       });
-      
-      // Show the cloned document again (for next shred)
-      const documentClone = document.getElementById('documentClone');
-      if (documentClone) {
-        documentClone.style.opacity = '0';
-        documentClone.style.transition = 'opacity 0.3s ease';
-        
-        setTimeout(() => {
-          if (documentClone) {
-            documentClone.remove();
-          }
-        }, 300);
+    }
+    
+    // Wait a bit before showing the original document
+    setTimeout(() => {
+      // Reset original document position with animation
+      if (documentRef.current) {
+        // Show original document and reset position to hover above the shredder
+        documentRef.current.style.display = 'block';
+        documentRef.current.style.transition = 'transform 0.8s ease-out';
+        documentRef.current.style.transform = 'translateX(-50%) translateY(0)';
       }
-    }
-    
-    // Reset progress
-    setProgress(0);
-    setProgressText('Ready to shred!');
-    setProgressFace('😊');
-    setIsShreddingComplete(false);
-    
-    // Play restore sound
-    if (soundEnabled) {
-      playRestoreSound();
-    }
+      
+      // Reset progress state
+      setProgress(0);
+      setProgressText('Ready to shred!');
+      setProgressFace('😊');
+      setIsShreddingComplete(false);
+    }, 300);
   };
   
   const resetShredder = () => {

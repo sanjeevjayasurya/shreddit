@@ -149,11 +149,17 @@ export const FileUpload = () => {
         </CardContent>
       </Card>
       
-      {/* Hidden document to be shredded - will be controlled by the ShredderContext */}
+      {/* Document to be shredded - positioned above the shredder */}
       <div 
         ref={documentRef}
-        className={`absolute w-48 h-64 bg-white shadow-md rounded transform -translate-y-80 left-1/2 -translate-x-1/2 ${!file ? 'hidden' : ''}`} 
-        style={{ zIndex: 10 }}
+        className={`fixed w-48 h-64 bg-white shadow-md rounded ${!file ? 'hidden' : ''}`} 
+        style={{ 
+          zIndex: 30, 
+          top: '250px', 
+          left: '50%', 
+          transform: 'translateX(-50%)',
+          transition: 'all 0.8s ease-in-out'
+        }}
       >
         <div className="h-full p-2 overflow-hidden flex flex-col">
           <div className="w-24 h-3 bg-gray-300 rounded mb-2"></div>
@@ -170,7 +176,9 @@ export const FileUpload = () => {
           )}
           
           {(!file || file.type === 'application/pdf') && (
-            <div className="w-full h-32 bg-gray-100 rounded mb-4"></div>
+            <div className="w-full h-32 bg-gray-100 rounded mb-4 flex items-center justify-center text-gray-400 text-xs">
+              {file?.type === 'application/pdf' && "PDF Document"}
+            </div>
           )}
           
           <div className="w-full h-2 bg-gray-200 rounded mb-2"></div>

@@ -1,40 +1,56 @@
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useShredder } from "@/lib/ShredderContext";
 
 const ShredderMachine = () => {
-  const { shredMode, isShredding, progress, isShreddingComplete, documentRef } = useShredder();
+  const { file, shredMode, isShredding, progress, isShreddingComplete, documentRef } = useShredder();
   const shreddedPiecesRef = useRef<HTMLDivElement>(null);
+  const [documentImage, setDocumentImage] = useState<string | null>(null);
   
+  // Get document image when file changes
   useEffect(() => {
-    if (isShredding && progress > 50 && !isShreddingComplete) {
-      createShredded();
+    if (file && file.type.includes('image')) {
+      const url = URL.createObjectURL(file);
+      setDocumentImage(url);
+      
+      // Clean up URL when component unmounts
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setDocumentImage(null);
     }
-  }, [isShredding, progress, isShreddingComplete]);
+  }, [file]);
+  
+  // Create shreds when shredding is started
+  useEffect(() => {
+    if (isShredding && !isShreddingComplete) {
+      // Create shreds immediately upon shredding
+      setTimeout(() => {
+        createShredded();
+      }, 800); // Wait for document to enter the shredder
+    }
+  }, [isShredding, isShreddingComplete]);
 
   const createShredded = () => {
     if (!shreddedPiecesRef.current) return;
     shreddedPiecesRef.current.innerHTML = '';
     
-    // Get the cloned document to create realistic shreds
-    const documentClone = document.getElementById('documentClone');
-    const documentCloneWidth = documentClone ? documentClone.offsetWidth : 180;
-    const documentCloneHeight = documentClone ? documentClone.offsetHeight : 260;
+    // Get document dimensions
+    const width = 180; // Standard document width
+    const height = 250; // Standard document height
     
-    // Calculate background position for image shreds
-    let bgImageUrl = '';
-    if (documentClone) {
-      // Find any images in the document clone
-      const imgElements = documentClone.querySelectorAll('img');
-      if (imgElements.length > 0) {
-        bgImageUrl = imgElements[0].src;
-      }
-    }
+    // Get document background (from image if available)
+    let bgImageUrl = documentImage;
     
     // Number of pieces depends on shred mode
-    const piecesCount = shredMode === 'strip' ? 18 : (shredMode === 'cross' ? 42 : 36);
+    const piecesCount = shredMode === 'strip' ? 15 : (shredMode === 'cross' ? 42 : 36);
     
     // Distribute pieces over document width
-    const stripWidth = shredMode === 'strip' ? documentCloneWidth / piecesCount : null;
+    const stripWidth = shredMode === 'strip' ? width / piecesCount : null;
+    
+    // Center the pieces in the bin
+    const containerWidth = shreddedPiecesRef.current.offsetWidth;
+    const startX = (containerWidth - width) / 2;
     
     for (let i = 0; i < piecesCount; i++) {
       const piece = document.createElement('div');
@@ -46,17 +62,18 @@ const ShredderMachine = () => {
         
         // Styling
         piece.style.width = `${stripWidth}px`;
-        piece.style.height = `${documentCloneHeight}px`;
-        piece.style.left = `${stripLeft}px`;
+        piece.style.height = `${height}px`;
+        piece.style.left = `${startX + stripLeft}px`;
         piece.style.position = 'absolute';
-        piece.style.bottom = '100%'; // Start from above the bin
+        piece.style.top = `-${height}px`; // Start above the bin
         piece.style.backgroundColor = '#ffffff';
         piece.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        piece.style.zIndex = '2';
         
         // If we have an image, use it as background
         if (bgImageUrl) {
           piece.style.backgroundImage = `url(${bgImageUrl})`;
-          piece.style.backgroundSize = `${documentCloneWidth}px ${documentCloneHeight}px`;
+          piece.style.backgroundSize = `${width}px ${height}px`;
           piece.style.backgroundPosition = `-${stripLeft}px 0`;
         } else {
           // Document-like appearance if no image
@@ -73,23 +90,33 @@ const ShredderMachine = () => {
             line.style.height = '2px';
             line.style.width = '60%';
             line.style.backgroundColor = '#e0e0e0';
-            line.style.margin = '8px auto';
+            line.style.margin = '16px auto';
+            piece.appendChild(line);
+          }
+          if (i % 7 === 0) {
+            const line = document.createElement('div');
+            line.style.height = '2px';
+            line.style.width = '70%';
+            line.style.backgroundColor = '#e0e0e0';
+            line.style.margin = '30px auto';
             piece.appendChild(line);
           }
         }
         
         // Animation for falling
-        piece.style.animation = `fall 2s ease-in ${i * 0.05}s forwards`;
+        piece.style.animation = `shred-fall-strip 1.5s ease-in ${i * 0.05}s forwards`;
         piece.style.setProperty('--rotation', `${Math.random() * 30 - 15}deg`);
       } else if (shredMode === 'cross') {
-        // Create small rectangles from document
+        // Create small rectangles from document in a grid
         piece.className = 'shredded-piece';
         
-        // Position across the document width
-        const pieceWidth = documentCloneWidth / 6;
-        const pieceHeight = documentCloneHeight / 7;
-        const row = Math.floor(i / 6);
-        const col = i % 6;
+        // Position across the document width in a grid
+        const cols = 6;
+        const rows = 7;
+        const pieceWidth = width / cols;
+        const pieceHeight = height / rows;
+        const row = Math.floor(i / cols);
+        const col = i % cols;
         const pieceLeft = col * pieceWidth;
         const pieceTop = row * pieceHeight;
         
@@ -97,22 +124,23 @@ const ShredderMachine = () => {
         piece.style.width = `${pieceWidth}px`;
         piece.style.height = `${pieceHeight}px`;
         piece.style.position = 'absolute';
-        piece.style.left = `${pieceLeft}px`;
-        piece.style.bottom = '100%';
+        piece.style.left = `${startX + (Math.random() * width * 0.8)}px`;
+        piece.style.top = `-${height * 0.8}px`;
         piece.style.backgroundColor = '#ffffff';
         piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+        piece.style.zIndex = '2';
         
         // Background image if available
         if (bgImageUrl) {
           piece.style.backgroundImage = `url(${bgImageUrl})`;
-          piece.style.backgroundSize = `${documentCloneWidth}px ${documentCloneHeight}px`;
+          piece.style.backgroundSize = `${width}px ${height}px`;
           piece.style.backgroundPosition = `-${pieceLeft}px -${pieceTop}px`;
         }
         
         // Rotation for flying pieces
         const rotation = Math.random() * 360;
         const delay = Math.random() * 0.5;
-        piece.style.animation = `confetti-fall 2.5s ease-in ${delay}s forwards`;
+        piece.style.animation = `shred-fall-cross 2s ease-in ${delay}s forwards`;
         piece.style.transform = `rotate(${rotation}deg)`;
       } else {
         // Crazy cut - irregular shapes but still from document
@@ -121,30 +149,33 @@ const ShredderMachine = () => {
         // Random size and position
         const pieceWidth = Math.random() * 20 + 10;
         const pieceHeight = Math.random() * 20 + 10;
-        const pieceLeft = Math.random() * documentCloneWidth;
-        const pieceTop = Math.random() * documentCloneHeight;
         
         // Styling
         piece.style.width = `${pieceWidth}px`;
         piece.style.height = `${pieceHeight}px`;
         piece.style.position = 'absolute';
-        piece.style.left = `${pieceLeft}px`;
-        piece.style.bottom = '100%';
+        piece.style.left = `${startX + (Math.random() * width * 0.9)}px`;
+        piece.style.top = `-${height}px`;
         piece.style.backgroundColor = '#ffffff';
         piece.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
         piece.style.borderRadius = `${Math.random() * 5}px`;
+        piece.style.zIndex = '2';
+        
+        // Random position in the document for background image
+        const pieceLeft = Math.random() * (width - pieceWidth);
+        const pieceTop = Math.random() * (height - pieceHeight);
         
         // Background image if available
         if (bgImageUrl) {
           piece.style.backgroundImage = `url(${bgImageUrl})`;
-          piece.style.backgroundSize = `${documentCloneWidth}px ${documentCloneHeight}px`;
+          piece.style.backgroundSize = `${width}px ${height}px`;
           piece.style.backgroundPosition = `-${pieceLeft}px -${pieceTop}px`;
         }
         
         // Animation
         const rotation = Math.random() * 720 - 360;
         const delay = Math.random() * 0.8;
-        piece.style.animation = `confetti-fall 3s ease-in ${delay}s forwards`;
+        piece.style.animation = `shred-fall-crazy 2.5s ease-in ${delay}s forwards`;
         piece.style.transform = `rotate(${rotation}deg)`;
       }
       
@@ -158,11 +189,6 @@ const ShredderMachine = () => {
           documentRef.current.style.display = 'none';
         }
       }, 500);
-    }
-    
-    // Position the cloned document (now shredded) below the shredder
-    if (documentClone) {
-      documentClone.style.display = 'none';
     }
   };
 
