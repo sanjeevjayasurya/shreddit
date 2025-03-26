@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 97%;
+    --foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --primary: 227 96% 59%; /* Main blue color */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 0 84% 70%; /* Red for shredder */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --accent: 47 100% 70%; /* Yellow for accent buttons */
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 215 20.2% 65.1%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .file-drop-area {
+    transition: all 0.3s ease;
+  }
+    
+  .file-drop-area.drag-over {
+    transform: scale(1.05);
+    border-color: var(--primary);
+    background-color: rgba(74, 108, 250, 0.1);
+  }
+    
+  .shredder-mouth {
+    transition: transform 0.3s ease;
+  }
+    
+  .shredder:hover .shredder-mouth {
+    transform: scaleY(1.2);
+  }
+    
+  .paper-strip {
+    width: 10px;
+    position: absolute;
+    animation: fall 2s ease-in forwards;
+    transform-origin: top center;
+  }
+    
+  @keyframes fall {
+    0% { 
+      transform: translateY(-50px) rotate(0deg); 
+      opacity: 1;
+    }
+    100% { 
+      transform: translateY(200px) rotate(var(--rotation)); 
+      opacity: 0;
+    }
+  }
+    
+  /* Shredding particles */
+  .confetti {
+    position: absolute;
+    width: 8px;
+    height: 16px;
+    animation: confetti-fall 3s ease-in forwards;
+  }
+    
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-20px) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(300px) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-20px);}
+    60% {transform: translateY(-10px);}
+  }
+  
+  .animate-bounce-slow {
+    animation: bounce 3s infinite;
+  }
+  
+  .animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
+  }
+  
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+  
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 640px) {
+    .shredder-container {
+      transform: scale(0.8);
+    }
+  }
+}
