@@ -44,6 +44,35 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
   
+  // Handle file changes without resetting all shredded pieces
+  useEffect(() => {
+    // When a new file is uploaded, we want to:
+    // 1. Keep all the shredded pieces from previous files
+    // 2. Just reset the shredding state to prepare for the new file
+    if (file) {
+      // Only reset the shredding state, not the actual shredded pieces
+      setProgress(0);
+      setProgressText('Ready to shred!');
+      setProgressFace('😊');
+      setIsShredding(false);
+      setIsShreddingComplete(false);
+      
+      if (progressIntervalRef.current !== null) {
+        window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
+      // Remove any previous document clone
+      const documentClone = document.getElementById('documentClone');
+      if (documentClone) {
+        documentClone.remove();
+      }
+    } else {
+      // No file selected - perform a complete reset
+      resetShredder();
+    }
+  }, [file]);
+  
   const startShredding = () => {
     if (!file || isShredding) return;
     
@@ -139,26 +168,8 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
       playRestoreSound();
     }
     
-    // Reset shredded pieces with a magical animation
-    const shreddedContainer = document.querySelector('#shredBin > div');
-    if (shreddedContainer) {
-      // Add a magical floating/dissolve animation to the shredded pieces 
-      const pieces = shreddedContainer.querySelectorAll('div');
-      pieces.forEach((piece, i) => {
-        // Randomize the animation for each piece for a more magical effect
-        const randomX = Math.random() * 40 - 20; // Random -20px to +20px
-        const randomDelay = Math.random() * 0.3; // Random delay 0-0.3s
-        
-        piece.style.transition = `all 0.7s ease-out ${randomDelay}s`;
-        piece.style.opacity = '0';
-        piece.style.transform = `translateY(-30px) translateX(${randomX}px) scale(0.8) rotate(${Math.random() * 180}deg)`;
-        
-        // Remove after animation
-        setTimeout(() => {
-          piece.remove();
-        }, 800);
-      });
-    }
+    // Don't reset or clear the previously shredded pieces
+    // They should accumulate over time with each new shred
     
     // Wait a bit before showing the original document
     setTimeout(() => {

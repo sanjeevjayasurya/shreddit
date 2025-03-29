@@ -63,7 +63,8 @@ const ShredderMachine = () => {
 
   const createShredded = () => {
     if (!shreddedPiecesRef.current) return;
-    shreddedPiecesRef.current.innerHTML = '';
+    // Do NOT clear existing shredded pieces - we want to accumulate them
+    // shreddedPiecesRef.current.innerHTML = '';
     
     // Standard A4 paper aspect ratio for the document
     const width = 210; // Width in mm (scaled down)

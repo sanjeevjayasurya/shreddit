@@ -152,10 +152,10 @@ export const FileUpload = () => {
       {/* Document to be shredded - positioned above the shredder */}
       <div 
         ref={documentRef}
-        className={`fixed w-48 h-64 bg-white shadow-md rounded ${!file ? 'hidden' : ''}`} 
+        className={`absolute w-48 h-64 bg-white shadow-md rounded ${!file ? 'hidden' : ''}`} 
         style={{ 
           zIndex: 30, 
-          top: '150px',  // Positioned somewhat above the shredder initially
+          top: '-150px',  // Positioned above the shredder (negative value relative to container)
           left: '50%', 
           transform: 'translateX(-50%)',
           transition: 'all 0.5s ease-in-out',
