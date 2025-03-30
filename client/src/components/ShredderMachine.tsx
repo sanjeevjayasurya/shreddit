@@ -329,7 +329,7 @@ const ShredderMachine = () => {
               {/* Shredded pieces container */}
               <div 
                 ref={shreddedPiecesRef} 
-                className="absolute w-full h-full"
+                className="absolute w-full h-full shredded-pieces-container"
                 style={{ 
                   zIndex: 50, 
                   overflow: 'visible',

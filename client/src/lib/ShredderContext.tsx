@@ -166,25 +166,34 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const clearShreddedPieces = () => {
-    // Clear all shredded pieces from the container
-    const shreddedContainer = document.querySelector('#shredBin > div > div');
+    // Clear all shredded pieces from the container - using a more precise selector
+    const shreddedContainer = document.querySelector('#shredBin .shredded-pieces-container');
+    
     if (shreddedContainer) {
       // Animation approach: make a fade-out effect before removing
       const batches = shreddedContainer.querySelectorAll('.shredded-batch');
       
+      if (batches.length === 0) {
+        console.log("No batches found to clear");
+        return;
+      }
+      
       batches.forEach((batch, index) => {
         // Stagger the removal for a cascading effect
         setTimeout(() => {
-          (batch as HTMLElement).style.transition = 'opacity 0.5s ease-out';
+          (batch as HTMLElement).style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
           (batch as HTMLElement).style.opacity = '0';
+          (batch as HTMLElement).style.transform = 'translateY(20px)';
           
           setTimeout(() => {
-            batch.remove();
+            shreddedContainer.removeChild(batch);
           }, 500);
         }, index * 100); // Stagger by 100ms per batch
       });
       
-      console.log("Cleared all shredded pieces from bin with animation");
+      console.log("Cleared all shredded pieces from bin with animation", batches.length, "batches");
+    } else {
+      console.log("Shredded container not found with selector: #shredBin .shredded-pieces-container");
     }
   };
   
