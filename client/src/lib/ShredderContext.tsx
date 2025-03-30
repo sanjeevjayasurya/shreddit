@@ -166,18 +166,59 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const clearShreddedPieces = () => {
-    // Clear all shredded pieces from the container - using a more precise selector
-    const shreddedContainer = document.querySelector('#shredBin .shredded-pieces-container');
+    // Try multiple possible selectors to ensure we find the container
+    const containerSelectors = [
+      '#shreddedPiecesContainer',
+      '#shredBin .shredded-pieces-container',
+      '.shredded-pieces-container'
+    ];
+    
+    let shreddedContainer = null;
+    
+    // Try each selector until we find a matching element
+    for (const selector of containerSelectors) {
+      const container = document.querySelector(selector);
+      if (container) {
+        shreddedContainer = container;
+        console.log(`Found shredded container with selector: ${selector}`);
+        break;
+      }
+    }
     
     if (shreddedContainer) {
       // Animation approach: make a fade-out effect before removing
       const batches = shreddedContainer.querySelectorAll('.shredded-batch');
       
       if (batches.length === 0) {
-        console.log("No batches found to clear");
+        console.log("No batches found to clear - trying to clear all child elements");
+        
+        // If no batches are found, try clearing all child elements
+        const children = Array.from(shreddedContainer.children);
+        if (children.length > 0) {
+          children.forEach((child, index) => {
+            setTimeout(() => {
+              (child as HTMLElement).style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+              (child as HTMLElement).style.opacity = '0';
+              (child as HTMLElement).style.transform = 'translateY(20px)';
+              
+              setTimeout(() => {
+                try {
+                  shreddedContainer?.removeChild(child);
+                } catch (e) {
+                  console.error("Error removing child:", e);
+                }
+              }, 500);
+            }, index * 100);
+          });
+          
+          console.log(`Cleared ${children.length} elements from bin with animation`);
+          return;
+        }
+        
         return;
       }
       
+      // Apply animation to each batch
       batches.forEach((batch, index) => {
         // Stagger the removal for a cascading effect
         setTimeout(() => {
@@ -186,14 +227,46 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
           (batch as HTMLElement).style.transform = 'translateY(20px)';
           
           setTimeout(() => {
-            shreddedContainer.removeChild(batch);
+            try {
+              shreddedContainer?.removeChild(batch);
+            } catch (e) {
+              console.error("Error removing batch:", e);
+            }
           }, 500);
         }, index * 100); // Stagger by 100ms per batch
       });
       
       console.log("Cleared all shredded pieces from bin with animation", batches.length, "batches");
     } else {
-      console.log("Shredded container not found with selector: #shredBin .shredded-pieces-container");
+      // Final fallback - try to get the container by ref in the next animation frame
+      console.log("No shredded container found with any selector - using direct DOM querying");
+      
+      const trayElement = document.querySelector('#shredBin');
+      if (trayElement) {
+        console.log("Found shred bin element, clearing all children");
+        
+        // Clear all children with animation
+        const allElements = trayElement.querySelectorAll('*');
+        let count = 0;
+        
+        allElements.forEach((el) => {
+          if (el.childNodes.length > 0 && el.className !== "absolute w-full h-full bg-black opacity-20 rounded-b-lg") {
+            count++;
+            (el as HTMLElement).style.transition = 'opacity 0.5s ease-out';
+            (el as HTMLElement).style.opacity = '0';
+          }
+        });
+        
+        setTimeout(() => {
+          const container = document.querySelector('#shredBin .shredded-pieces-container');
+          if (container) {
+            container.innerHTML = '';
+            console.log("Cleared shredded container innerHTML");
+          }
+        }, 600);
+        
+        console.log(`Applied fade-out to ${count} elements in the bin`);
+      }
     }
   };
   

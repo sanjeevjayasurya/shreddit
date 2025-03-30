@@ -65,8 +65,14 @@ export const FileUpload = () => {
     setFile(file);
   };
 
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
+  const handleBrowseClick = (e: React.MouseEvent) => {
+    // Prevent event bubbling to parent elements
+    e.stopPropagation();
+    
+    // Check if input exists and trigger click
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleRemoveFile = () => {
@@ -118,7 +124,9 @@ export const FileUpload = () => {
                   Drop your file here
                 </h2>
                 <p className="text-gray-500 mb-4">or</p>
-                <Button className="bg-primary text-white px-6 py-3 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all shadow-md">
+                <Button 
+                  onClick={handleBrowseClick}
+                  className="bg-primary text-white px-6 py-3 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all shadow-md">
                   Browse Files
                 </Button>
                 <p className="text-gray-400 mt-4 text-sm">
