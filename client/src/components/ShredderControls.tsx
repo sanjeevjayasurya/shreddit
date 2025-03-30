@@ -5,6 +5,7 @@ import { useShredder } from "@/lib/ShredderContext";
 const ShredderControls = () => {
   const { 
     file, 
+    setFile,
     shredMode, 
     setShredMode, 
     isShredding, 
@@ -15,14 +16,15 @@ const ShredderControls = () => {
     soundEnabled,
     toggleSound,
     startShredding,
-    restoreDocument
+    clearShreddedPieces,
+    resetShredder
   } = useShredder();
 
   return (
     <div className="shredder-controls w-full max-w-2xl bg-white rounded-2xl p-6 shadow-lg">
       <div className="mb-6">
         <h3 className="text-xl font-bold mb-4 text-dark">Shredding Mode</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Button 
             onClick={() => setShredMode('strip')} 
             className={`py-3 px-4 rounded-xl font-bold flex items-center justify-center hover:animate-wiggle ${
@@ -46,18 +48,6 @@ const ShredderControls = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
             </svg>
             Cross Cut
-          </Button>
-          <Button 
-            onClick={() => setShredMode('crazy')} 
-            className={`py-3 px-4 rounded-xl font-bold flex items-center justify-center hover:animate-wiggle ${
-              shredMode === 'crazy' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-700'
-            }`}
-            disabled={isShredding}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Crazy Cut
           </Button>
         </div>
       </div>
@@ -87,14 +77,13 @@ const ShredderControls = () => {
           Start Shredding
         </Button>
         <Button 
-          onClick={restoreDocument}
+          onClick={clearShreddedPieces}
           className="bg-accent text-dark py-4 px-8 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center hover:animate-bounce"
-          disabled={!isShreddingComplete}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
-          Magic Restore
+          Clear Bin
         </Button>
         <Button 
           onClick={toggleSound}
@@ -112,6 +101,23 @@ const ShredderControls = () => {
           )}
         </Button>
       </div>
+      
+      {isShreddingComplete && (
+        <div className="flex justify-center mt-4">
+          <Button
+            onClick={() => {
+              resetShredder();
+              setFile(null);
+            }}
+            className="bg-primary text-white py-3 px-6 rounded-xl font-medium text-md shadow-md flex items-center justify-center mt-4 hover:bg-primary/90"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload New Document
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

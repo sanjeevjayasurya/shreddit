@@ -67,7 +67,7 @@ const ShredderMachine = () => {
         createShredded();
       }, 800); // Wait for document to enter the shredder
     }
-  }, [isShredding, isShreddingComplete, shredMode, documentImage, file]);
+  }, [isShredding, isShreddingComplete]);
 
   const createShredded = () => {
     console.log("createShredded called, file:", file?.name);
@@ -80,8 +80,15 @@ const ShredderMachine = () => {
       return;
     }
     console.log("Starting to create shredded pieces");
-    // Do NOT clear existing shredded pieces - we want to accumulate them
-    // shreddedPiecesRef.current.innerHTML = '';
+    
+    // Create a container div for this batch of shredded pieces
+    const batchContainer = document.createElement('div');
+    batchContainer.className = 'shredded-batch';
+    batchContainer.style.position = 'absolute';
+    batchContainer.style.width = '100%';
+    batchContainer.style.height = '100%';
+    batchContainer.style.zIndex = '5';
+    batchContainer.style.pointerEvents = 'none';
     
     // Standard A4 paper aspect ratio for the document
     const width = 210; // Width in mm (scaled down)
@@ -180,14 +187,14 @@ const ShredderMachine = () => {
     piecesConfig.forEach(config => {
       const piece = document.createElement('div');
       
-      // Common styling for all pieces - make them very visible for debugging
+      // Common styling for all pieces - make them very visible
       piece.style.position = 'absolute';
       piece.style.width = `${config.width}px`;
       piece.style.height = `${config.height}px`;
       piece.style.left = `${config.left}px`;
       piece.style.top = `${config.top}px`;
       piece.style.backgroundColor = '#ffffff';
-      piece.style.border = '1px solid #000'; // Add border
+      piece.style.border = '1px solid rgba(0, 0, 0, 0.3)'; // More subtle border
       piece.style.zIndex = '50'; // Make sure they're on top
       
       // Type guards for proper TypeScript type checking
@@ -260,17 +267,17 @@ const ShredderMachine = () => {
         piece.style.backgroundPosition = `${config.backgroundX}px ${config.backgroundY}px`;
       }
       
-      // Add to DOM - check for null to satisfy TypeScript
-      if (shreddedPiecesRef.current) {
-        shreddedPiecesRef.current.appendChild(piece);
-        console.log("Appended piece to shredded container", { 
-          pieceType: config.type, 
-          containerChildCount: shreddedPiecesRef.current.childNodes.length
-        });
-      } else {
-        console.error("Failed to append piece - container ref is null");
-      }
+      // Add to batch container instead of directly to the shredded pieces container
+      batchContainer.appendChild(piece);
     });
+
+    // Add the batch container to the shredded pieces container
+    if (shreddedPiecesRef.current) {
+      shreddedPiecesRef.current.appendChild(batchContainer);
+      console.log("Appended batch container with", piecesConfig.length, "pieces");
+    } else {
+      console.error("Failed to append batch container - shredded pieces ref is null");
+    }
     
     // Hide the original document with a slight delay
     if (documentRef.current) {
@@ -326,21 +333,11 @@ const ShredderMachine = () => {
                 style={{ 
                   zIndex: 50, 
                   overflow: 'visible',
-                  padding: '10px'
+                  padding: '10px',
+                  position: 'relative',
+                  pointerEvents: 'none' // Allow clicks to pass through to underlying elements
                 }}
               >
-                {/* Debug test piece for visibility */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: 'red',
-                    top: '20%',
-                    left: '40%',
-                    zIndex: 99
-                  }}
-                ></div>
                 {/* Shredded pieces will appear here dynamically */}
               </div>
             </div>

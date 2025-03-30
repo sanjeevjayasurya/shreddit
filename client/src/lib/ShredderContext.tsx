@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { playShredSound, playRestoreSound } from '@/assets/shredder-sound';
+import { playShredSound } from '@/assets/shredder-sound';
 
-type ShredMode = 'strip' | 'cross' | 'crazy';
+type ShredMode = 'strip' | 'cross';
 
 interface ShredderContextType {
   file: File | null;
@@ -16,7 +16,7 @@ interface ShredderContextType {
   soundEnabled: boolean;
   toggleSound: () => void;
   startShredding: () => void;
-  restoreDocument: () => void;
+  clearShreddedPieces: () => void;
   resetShredder: () => void;
   documentRef: React.RefObject<HTMLDivElement>;
 }
@@ -165,33 +165,27 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
     setProgressText('Shredding complete!');
   };
   
-  const restoreDocument = () => {
-    if (!file) return;
-    
-    // Play restore sound first - feels more responsive
-    if (soundEnabled) {
-      playRestoreSound();
-    }
-    
-    // Don't reset or clear the previously shredded pieces
-    // They should accumulate over time with each new shred
-    
-    // Wait a bit before showing the original document
-    setTimeout(() => {
-      // Reset original document position with animation
-      if (documentRef.current) {
-        // Show original document and reset position to hover above the shredder
-        documentRef.current.style.display = 'block';
-        documentRef.current.style.transition = 'transform 0.8s ease-out';
-        documentRef.current.style.transform = 'translateX(-50%) translateY(0)';
-      }
+  const clearShreddedPieces = () => {
+    // Clear all shredded pieces from the container
+    const shreddedContainer = document.querySelector('#shredBin > div > div');
+    if (shreddedContainer) {
+      // Animation approach: make a fade-out effect before removing
+      const batches = shreddedContainer.querySelectorAll('.shredded-batch');
       
-      // Reset progress state
-      setProgress(0);
-      setProgressText('Ready to shred!');
-      setProgressFace('😊');
-      setIsShreddingComplete(false);
-    }, 300);
+      batches.forEach((batch, index) => {
+        // Stagger the removal for a cascading effect
+        setTimeout(() => {
+          (batch as HTMLElement).style.transition = 'opacity 0.5s ease-out';
+          (batch as HTMLElement).style.opacity = '0';
+          
+          setTimeout(() => {
+            batch.remove();
+          }, 500);
+        }, index * 100); // Stagger by 100ms per batch
+      });
+      
+      console.log("Cleared all shredded pieces from bin with animation");
+    }
   };
   
   const resetShredder = () => {
@@ -235,7 +229,7 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
         soundEnabled,
         toggleSound,
         startShredding,
-        restoreDocument,
+        clearShreddedPieces,
         resetShredder,
         documentRef,
       }}

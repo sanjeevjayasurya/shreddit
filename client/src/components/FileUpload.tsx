@@ -64,15 +64,15 @@ export const FileUpload = () => {
 
   return (
     <div className="w-full max-w-2xl mb-8">
-      {/* Only show the file upload card when no file is selected or after shredding is complete */}
-      {!file && (
+      {/* Show the file upload card when no file is selected OR after shredding is complete */}
+      {(!file || isShreddingComplete) && (
         <Card 
           className={`border-4 border-dashed rounded-2xl p-8 text-center bg-white shadow-md cursor-pointer hover:shadow-lg transition-all 
           ${isDragging ? 'border-primary bg-primary/10 scale-105' : 'border-primary'}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={!file ? handleBrowseClick : undefined}
+          onClick={handleBrowseClick}
         >
           <CardContent className="p-0">
             <input 
@@ -94,6 +94,23 @@ export const FileUpload = () => {
                 <p className="text-gray-500 mb-4">or</p>
                 <Button 
                   className="bg-primary text-white px-6 py-3 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all shadow-md"
+                >
+                  Browse Files
+                </Button>
+                <p className="text-gray-400 mt-4 text-sm">Accepts PDF, JPG, and PNG</p>
+              </div>
+            ) : isShreddingComplete ? (
+              <div className="flex flex-col items-center">
+                <div className="text-6xl text-primary mb-4 animate-bounce-slow">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-dark mb-2">Shred another file?</h2>
+                <p className="text-gray-500 mb-4">or</p>
+                <Button 
+                  className="bg-primary text-white px-6 py-3 rounded-full font-bold text-lg hover:bg-opacity-90 transition-all shadow-md"
+                  onClick={handleBrowseClick}
                 >
                   Browse Files
                 </Button>
