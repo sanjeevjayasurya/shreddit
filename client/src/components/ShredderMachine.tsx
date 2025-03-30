@@ -36,6 +36,11 @@ const ShredderMachine = () => {
   const shreddedPiecesRef = useRef<HTMLDivElement>(null);
   const [documentImage, setDocumentImage] = useState<string | null>(null);
   
+  // Debug shreddedPiecesRef on mount
+  useEffect(() => {
+    console.log("Shredder mounted, shreddedPiecesRef:", shreddedPiecesRef.current);
+  }, []);
+  
   // Get document image when file changes
   useEffect(() => {
     if (file && file.type.includes('image')) {
@@ -53,17 +58,28 @@ const ShredderMachine = () => {
   
   // Create shreds when shredding is started
   useEffect(() => {
+    console.log("Shredding state changed:", isShredding, isShreddingComplete);
     if (isShredding && !isShreddingComplete) {
+      console.log("Starting shred animation!");
       // Create shreds immediately upon shredding
       setTimeout(() => {
+        console.log("Creating shredded pieces now");
         createShredded();
       }, 800); // Wait for document to enter the shredder
     }
-  }, [isShredding, isShreddingComplete, shredMode, documentImage]);
+  }, [isShredding, isShreddingComplete, shredMode, documentImage, file]);
 
   const createShredded = () => {
-    if (!shreddedPiecesRef.current) return;
-    if (!file) return; // Make sure we have a file to shred
+    console.log("createShredded called, file:", file?.name);
+    if (!shreddedPiecesRef.current) {
+      console.error("No shredded pieces container found!");
+      return;
+    }
+    if (!file) {
+      console.error("No file to shred!");
+      return;
+    }
+    console.log("Starting to create shredded pieces");
     // Do NOT clear existing shredded pieces - we want to accumulate them
     // shreddedPiecesRef.current.innerHTML = '';
     
@@ -158,18 +174,21 @@ const ShredderMachine = () => {
       }
     }
     
+    console.log("Creating", piecesConfig.length, "shredded pieces for mode:", shredMode);
+    
     // Create and add all pieces to the DOM
     piecesConfig.forEach(config => {
       const piece = document.createElement('div');
       
-      // Common styling for all pieces
+      // Common styling for all pieces - make them very visible for debugging
       piece.style.position = 'absolute';
       piece.style.width = `${config.width}px`;
       piece.style.height = `${config.height}px`;
       piece.style.left = `${config.left}px`;
       piece.style.top = `${config.top}px`;
       piece.style.backgroundColor = '#ffffff';
-      piece.style.zIndex = '5';
+      piece.style.border = '1px solid #000'; // Add border
+      piece.style.zIndex = '50'; // Make sure they're on top
       
       // Type guards for proper TypeScript type checking
       if (config.type === 'strip') {
@@ -244,6 +263,12 @@ const ShredderMachine = () => {
       // Add to DOM - check for null to satisfy TypeScript
       if (shreddedPiecesRef.current) {
         shreddedPiecesRef.current.appendChild(piece);
+        console.log("Appended piece to shredded container", { 
+          pieceType: config.type, 
+          containerChildCount: shreddedPiecesRef.current.childNodes.length
+        });
+      } else {
+        console.error("Failed to append piece - container ref is null");
       }
     });
     
@@ -295,7 +320,27 @@ const ShredderMachine = () => {
               <div className="absolute w-full h-full bg-black opacity-20 rounded-b-lg"></div>
               
               {/* Shredded pieces container */}
-              <div ref={shreddedPiecesRef} className="absolute w-full h-full">
+              <div 
+                ref={shreddedPiecesRef} 
+                className="absolute w-full h-full"
+                style={{ 
+                  zIndex: 50, 
+                  overflow: 'visible',
+                  padding: '10px'
+                }}
+              >
+                {/* Debug test piece for visibility */}
+                <div 
+                  style={{
+                    position: 'absolute',
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: 'red',
+                    top: '20%',
+                    left: '40%',
+                    zIndex: 99
+                  }}
+                ></div>
                 {/* Shredded pieces will appear here dynamically */}
               </div>
             </div>

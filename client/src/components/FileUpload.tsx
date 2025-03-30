@@ -64,8 +64,8 @@ export const FileUpload = () => {
 
   return (
     <div className="w-full max-w-2xl mb-8">
-      {/* Only show the file upload card when not shredding */}
-      {!isShredding && (
+      {/* Only show the file upload card when no file is selected or after shredding is complete */}
+      {!file && (
         <Card 
           className={`border-4 border-dashed rounded-2xl p-8 text-center bg-white shadow-md cursor-pointer hover:shadow-lg transition-all 
           ${isDragging ? 'border-primary bg-primary/10 scale-105' : 'border-primary'}`}

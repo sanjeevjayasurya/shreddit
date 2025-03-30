@@ -63,23 +63,24 @@
     transform-origin: center;
     overflow: hidden;
     will-change: transform, opacity;
+    z-index: 10 !important; /* Ensure visibility */
   }
     
   /* For strip cut animation */
   @keyframes shred-fall-strip {
     0% { 
-      transform: translateY(0) translateX(0) rotate(0deg); 
-      opacity: 0;
+      transform: translateY(-10px) translateX(0) rotate(0deg); 
+      opacity: 0.2;
     }
     10% {
-      opacity: 1;
+      opacity: 0.6;
     }
-    70% {
-      opacity: 1;
+    50% {
+      opacity: 0.8;
     }
     100% { 
       transform: translateY(var(--end-y, 100px)) translateX(var(--end-x, 0px)) rotate(var(--rotation, 5deg)); 
-      opacity: 1;
+      opacity: 0.9;
     }
   }
     

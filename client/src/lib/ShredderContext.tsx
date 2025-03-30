@@ -74,8 +74,13 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
   }, [file]);
   
   const startShredding = () => {
-    if (!file || isShredding) return;
+    console.log("Start shredding called with file:", file?.name);
+    if (!file || isShredding) {
+      console.warn("Cannot start shredding - no file or already shredding");
+      return;
+    }
     
+    console.log("Starting shredding process");
     setIsShredding(true);
     setIsShreddingComplete(false);
     setProgress(0);
@@ -201,17 +206,14 @@ export const ShredderProvider = ({ children }: { children: ReactNode }) => {
       progressIntervalRef.current = null;
     }
     
-    // Clean up any shredded pieces
-    const shreddedContainer = document.querySelector('#shredBin > div');
-    if (shreddedContainer) {
-      shreddedContainer.innerHTML = '';
-    }
-    
-    // Remove any cloned document 
+    // DO NOT clean up shredded pieces - we want them to accumulate
+    // Only clean up cloned document
     const documentClone = document.getElementById('documentClone');
     if (documentClone) {
       documentClone.remove();
     }
+    
+    console.log("Reset shredder state but preserved shredded pieces");
   };
   
   const toggleSound = () => {
