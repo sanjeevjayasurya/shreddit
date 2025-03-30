@@ -59,10 +59,11 @@ const ShredderMachine = () => {
         createShredded();
       }, 800); // Wait for document to enter the shredder
     }
-  }, [isShredding, isShreddingComplete]);
+  }, [isShredding, isShreddingComplete, shredMode, documentImage]);
 
   const createShredded = () => {
     if (!shreddedPiecesRef.current) return;
+    if (!file) return; // Make sure we have a file to shred
     // Do NOT clear existing shredded pieces - we want to accumulate them
     // shreddedPiecesRef.current.innerHTML = '';
     
