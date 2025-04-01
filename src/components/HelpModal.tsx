@@ -30,7 +30,7 @@ const HelpModal = () => {
             How to Use
           </DialogTitle>
           <DialogDescription>
-            Instructions for using the Infinite Shredder:
+            Instructions for using the Shreddit:
           </DialogDescription>
           <div className="space-y-4 mt-4">
             <div className="flex items-start">
