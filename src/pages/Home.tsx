@@ -20,7 +20,7 @@ const Home = () => {
       </header>
       
       <main className="container mx-auto flex-grow px-4 py-8 flex flex-col items-center">
-        <FileUpload />
+        {/* <FileUpload /> */}
         <ShredderMachine />
         <ShredderControls />
       </main>

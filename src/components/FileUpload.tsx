@@ -51,10 +51,10 @@ export const FileUpload = () => {
   };
 
   const validateAndSetFile = (file: File) => {
-    const validTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
 
     if (!validTypes.includes(file.type)) {
-      alert("Please select a PDF, JPG, or PNG file");
+      alert("Please select a JPG, or PNG file");
       return;
     }
 
@@ -68,10 +68,9 @@ export const FileUpload = () => {
   const handleBrowseClick = (e: React.MouseEvent) => {
     // Prevent event bubbling to parent elements
     e.stopPropagation();
-    
     // Check if input exists and trigger click
     if (fileInputRef.current) {
-      fileInputRef.current.click();
+      fileInputRef.current.click();``
     }
   };
 
@@ -82,7 +81,7 @@ export const FileUpload = () => {
   };
 
   return (
-    <div className="w-full max-w-2xl mb-8">
+    <div className="w-full max-w-2xl mb-8 relative">
       {/* Show the file upload card when no file is selected OR when file exists but shredding is complete */}
       {(!file || (file && isShreddingComplete && !isShredding)) && (
         <Card

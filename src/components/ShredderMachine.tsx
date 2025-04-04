@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, DragEvent, ChangeEvent } from "react";
 import { useShredder } from "@/lib/ShredderContext";
+import { formatFileSize } from "@/lib/utils";
 
 // Define piece config types for better TypeScript support
 type BasePieceConfig = {
@@ -32,9 +33,12 @@ type CrazyPieceConfig = BasePieceConfig & {
 type PieceConfig = StripPieceConfig | CrossPieceConfig | CrazyPieceConfig;
 
 const ShredderMachine = () => {
-  const { file, shredMode, isShredding, progress, isShreddingComplete, documentRef } = useShredder();
+  const { file, shredMode, isShredding, progress, isShreddingComplete, documentRef, setFile, resetShredder } = useShredder();
   const shreddedPiecesRef = useRef<HTMLDivElement>(null);
   const [documentImage, setDocumentImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [documentAnimClass, setDocumentAnimClass] = useState("");
   
   // Debug shreddedPiecesRef on mount
   useEffect(() => {
@@ -66,6 +70,15 @@ const ShredderMachine = () => {
         console.log("Creating shredded pieces now");
         createShredded();
       }, 800); // Wait for document to enter the shredder
+    }
+  }, [isShredding, isShreddingComplete]);
+
+  // Handle animation state for document
+  useEffect(() => {
+    if (isShredding && !isShreddingComplete) {
+      setDocumentAnimClass("document-falling");
+    } else if (!isShredding) {
+      setDocumentAnimClass("");
     }
   }, [isShredding, isShreddingComplete]);
 
@@ -289,65 +302,254 @@ const ShredderMachine = () => {
     }
   };
 
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files.length) {
+      const file = e.dataTransfer.files[0];
+      validateAndSetFile(file);
+    }
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const fileInput = e.target;
+    
+    if (fileInput.files?.length) {
+      const file = fileInput.files[0];
+      validateAndSetFile(file);
+      
+      // Clear the input value to ensure onChange fires even if same file is selected again
+      setTimeout(() => {
+        if (fileInput) fileInput.value = '';
+      }, 100);
+    }
+  };
+
+  const validateAndSetFile = (file: File) => {
+    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+    if (!validTypes.includes(file.type)) {
+      alert("Please select a JPG, or PNG file");
+      return;
+    }
+
+    // Reset the shredder state first
+    resetShredder();
+    
+    // Then set the new file
+    setFile(file);
+  };
+
+  const handleBrowseClick = (e: React.MouseEvent) => {
+    // Prevent event bubbling to parent elements
+    e.stopPropagation();
+    // Check if input exists and trigger click
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    resetShredder();
+  };
+
   return (
-    <div id="shredderContainer" className="shredder-container relative mb-8 w-full">
-      {/* Shredder machine with face */}
-      <div className="shredder w-full max-w-4xl mx-auto relative h-[500px]">
-        {/* Shredder body */}
-        <div className="shredder-body bg-secondary rounded-3xl w-full h-[400px] shadow-lg relative overflow-hidden flex flex-col">
-          {/* Shredder face */}
-          <div className="shredder-face absolute w-full flex justify-center pt-6">
-            {/* Eyes */}
-            <div className="flex space-x-20">
-              <div className="eye w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <div className={`pupil w-5 h-5 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
-              </div>
-              <div className="eye w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <div className={`pupil w-5 h-5 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Shredder mouth/slot - wider to accommodate document */}
-          <div className="shredder-mouth w-3/4 h-10 bg-dark rounded-lg mx-auto mt-28 shadow-inner flex items-center justify-center overflow-hidden relative">
-            {/* Black strip for shadow/depth inside slot */}
-            <div className="absolute w-full h-full bg-black opacity-40"></div>
-            <div className="shredder-teeth flex z-10">
-              {Array(16).fill(0).map((_, i) => (
-                <div key={i} className={`tooth w-1 h-10 bg-gray-600 mx-1 ${isShredding ? 'animate-spin-slow' : ''}`}></div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Shredder collection bin/tray */}
-          <div className="shredder-bin flex-grow bg-gray-700 mt-4 relative overflow-hidden" id="shredBin">
-            {/* Tray with raised edges */}
-            <div className="absolute w-11/12 h-full mx-auto left-0 right-0 bg-gray-600 rounded-b-lg">
-              {/* Inner tray shadow for depth */}
-              <div className="absolute w-full h-full bg-black opacity-20 rounded-b-lg"></div>
-              
-              {/* Shredded pieces container */}
-              <div 
-                ref={shreddedPiecesRef} 
-                className="absolute w-full h-full shredded-pieces-container"
-                id="shreddedPiecesContainer"
-                style={{ 
-                  zIndex: 50, 
-                  overflow: 'visible',
-                  padding: '10px',
-                  position: 'relative',
-                  pointerEvents: 'none' // Allow clicks to pass through to underlying elements
-                }}
-              >
-                {/* Shredded pieces will appear here dynamically */}
-              </div>
-            </div>
+    <div className="w-full max-w-2xl mb-8 relative">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fallIntoShredder {
+          0% {
+            transform: translate(-50%, -300px);
+            opacity: 1;
+          }
+          80% {
+            transform: translate(-50%, 40px);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(-50%, 70px);
+            opacity: 0;
+          }
+        }
+        
+        .document-container {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translate(-50%, -300px);
+          z-index: 50;
+          width: 210px;
+          height: 297px;
+        }
+        
+        .document-falling {
+          animation: fallIntoShredder 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+        }
+        
+        .document-wrapper {
+          width: 100%;
+          height: 100%;
+          background-color: white;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+          border-radius: 4px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+      `}} />
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".jpg,.jpeg,.png"
+        onChange={handleFileSelect}
+      />
+
+      {/* Document animation container */}
+      {file && !isShreddingComplete && (
+        <div 
+          ref={documentRef}
+          className={`document-container ${documentAnimClass}`}
+        >
+          <div className="document-wrapper">
+            <img
+              src={URL.createObjectURL(file)}
+              alt="Document"
+              className="w-full h-full object-contain"
+            />
           </div>
         </div>
-        
-        {/* Shredder base/stand */}
-        <div className="shredder-base w-5/6 h-16 bg-gray-800 rounded-b-3xl mx-auto shadow-lg"></div>
+      )}
+
+      <div 
+        className={`shredder-machine ${isDragging ? 'border-4 border-dashed border-primary bg-primary/10' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={handleBrowseClick}
+      >
+        {/* Shredder machine with face */}
+        <div className="shredder w-full max-w-4xl mx-auto relative h-[500px]">
+          {/* Shredder body */}
+          <div className="shredder-body bg-secondary rounded-3xl w-full h-[400px] shadow-lg relative overflow-hidden flex flex-col">
+            {/* Shredder face */}
+            <div className="shredder-face absolute w-full flex justify-center pt-6">
+              {/* Eyes */}
+              <div className="flex space-x-20">
+                <div className="eye w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <div className={`pupil w-5 h-5 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
+                </div>
+                <div className="eye w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <div className={`pupil w-5 h-5 bg-dark rounded-full ${isShredding ? 'animate-pulse' : ''}`}></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Shredder mouth/slot - wider to accommodate document */}
+            <div className="shredder-mouth w-3/4 h-10 bg-dark rounded-lg mx-auto mt-28 shadow-inner flex items-center justify-center overflow-hidden relative">
+              {/* Black strip for shadow/depth inside slot */}
+              <div className="absolute w-full h-full bg-black opacity-40"></div>
+              <div className="shredder-teeth flex z-10">
+                {Array(16).fill(0).map((_, i) => (
+                  <div key={i} className={`tooth w-1 h-10 bg-gray-600 mx-1 ${isShredding ? 'animate-spin-slow' : ''}`}></div>
+                ))}
+              </div>
+            </div>
+            <div className="h-4 z-[51] bg-secondary"></div>
+            {/* Shredder collection bin/tray */}
+            <div className="shredder-bin flex-grow bg-gray-700 z-[51] relative overflow-hidden" id="shredBin">
+              {/* Tray with raised edges */}
+              <div className="absolute w-11/12 h-full mx-auto left-0 right-0 bg-gray-600 rounded-b-lg">
+                {/* Inner tray shadow for depth */}
+                <div className="absolute w-full h-full bg-black opacity-20 rounded-b-lg"></div>
+                
+                {/* Shredded pieces container */}
+                <div 
+                  ref={shreddedPiecesRef} 
+                  className="absolute w-full h-full shredded-pieces-container"
+                  id="shreddedPiecesContainer"
+                  style={{ 
+                    zIndex: 50, 
+                    overflow: 'visible',
+                    padding: '10px',
+                    position: 'relative',
+                    pointerEvents: 'none' // Allow clicks to pass through to underlying elements
+                  }}
+                >
+                  {/* Shredded pieces will appear here dynamically */}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Shredder base/stand */}
+          <div className="shredder-base w-5/6 h-16 bg-gray-800 rounded-b-3xl mx-auto shadow-lg"></div>
+        </div>
       </div>
+
+      {/* File info display when a file is selected */}
+      {/* {file && !isShreddingComplete && (
+        <div className="absolute top-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50">
+          <div className="flex items-center">
+            <div className="text-4xl text-primary mr-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <div className="flex-grow">
+              <h3 className="font-bold text-lg text-dark truncate">
+                {file.name}
+              </h3>
+              <p className="text-gray-500 text-sm">
+                {formatFileSize(file.size)}
+              </p>
+            </div>
+            <button
+              className="text-secondary hover:text-red-700 transition-all"
+              onClick={handleRemoveFile}
+              disabled={isShredding}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )} */}
     </div>
   );
 };
